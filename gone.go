@@ -35,7 +35,7 @@ func checkErr(err error) {
 	}
 }
 
-func (s scheduler) checkEventsInInterval(ctx context.Context, duration time.Duration) {
+func (s scheduler) checkNetworksInInterval(ctx context.Context, duration time.Duration) {
 	ticker := time.NewTicker(duration)
 	go func() {
 		for {
@@ -80,7 +80,7 @@ func main() {
 
 	s := newScheduler(db)
 
-	s.checkEventsInInterval(ctx, time.Minute)
+	s.checkNetworksInInterval(ctx, time.Minute)
 
 	go func() {
 		for range interrupt {
