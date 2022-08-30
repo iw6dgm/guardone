@@ -10,4 +10,10 @@ CREATE TABLE network (
 	full_name TEXT NOT NULL
 );
 
+CREATE VIEW report_v1 AS
+SELECT
+DATETIME(created_at,'unixepoch') AS created_at_datetime,r.ssid,IFNULL(n.full_name,'UNDEFINED') AS network_name,r.rssi
+FROM reading r
+LEFT JOIN network n ON r.ssid = n.ssid
+ORDER BY created_at ASC;
 
