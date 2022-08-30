@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/schollz/wifiscan"
@@ -13,7 +14,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const insertSQL = `INSERT INTO reading(ssid, rssi) VALUES(?,?)`
+const insertSQL = `INSERT INTO reading(ssid, rssi) VALUES`
 
 type scheduler struct {
 	db *sql.DB
@@ -53,18 +54,35 @@ func (s scheduler) checkNetworksInInterval(ctx context.Context, duration time.Du
 }
 
 func (s scheduler) scan() {
+	err := s.db.Ping()
+	if err != nil {
+		log.Fatal(err)
+	}
 	wifis, err := wifiscan.Scan()
 	if err != nil {
 		log.Fatal(err)
 	}
-	stmt, err := s.db.Prepare(insertSQL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer stmt.Close()
-	for _, w := range wifis {
-		stmt.Exec(w.SSID, w.RSSI)
-		log.Println(w.SSID, w.RSSI)
+	if len(wifis) > 0 {
+		insertSQLcommand := insertSQL
+		vals := []interface{}{}
+		for _, row := range wifis {
+			insertSQLcommand += "(?, ?),"
+			vals = append(vals, row.SSID, row.RSSI)
+			log.Println(row.SSID, row.RSSI)
+		}
+		//trim the last ,
+		insertSQLcommand = strings.TrimSuffix(insertSQLcommand, ",")
+		stmt, err := s.db.Prepare(insertSQLcommand)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+		_, err = stmt.Exec(vals...)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		log.Println("No Wi-Fi found...")
 	}
 }
 
